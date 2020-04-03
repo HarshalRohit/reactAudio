@@ -1,0 +1,20 @@
+UI
+Welcome banner - permanent
+
+Based on Microphone Permission
+	Accepted
+		1. show the main UI
+	Prompt
+		2. Show the button to request the microphone
+	Denied
+		3. Show the error page
+
+
+
+
+js vars-
+	microphoneAccess
+		vals: accepted, prompt, denied
+
+
+
