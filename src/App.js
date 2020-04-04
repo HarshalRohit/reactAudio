@@ -34,50 +34,57 @@ class MainUI extends Component {
 
     this.handleRecordBtnClick = this.handleRecordBtnClick.bind(this);
     this.handleStopBtnClick = this.handleStopBtnClick.bind(this);
+
+    this.download = this.download.bind(this);
   }
 
   componentDidMount(){
-
-    navigator.mediaDevices.getUserMedia({
-        audio: true
-    })
-    .then(this.setupAudioRecord)
-    .catch(() => {console.log("should not reach here!!")});
-    
+    navigator.mediaDevices.getUserMedia({audio: true}) 
+      .then(this.setupAudioRecord)
+      .catch(() => {console.log("should not reach here!!")});
   }
 
 
   setupAudioRecord(stream){
-
     let audioStream = new MediaRecorder(stream);
     audioStream.ondataavailable = this.mediaRecOnDataAvail
     audioStream.onstop = this.mediaRecOnStop
 
     this.setState({ audioStream: audioStream, 
-                      chunks: []
-                    });
-
-    // this.state.audioStream.ondataavailable = this.mediaRecOnDataAvail
-    // this.state.audioStream.onstop = this.mediaRecOnStop
+                    chunks: []
+                  });
   }
 
   mediaRecOnDataAvail(e){
-    const {chunks} = this.state;
-    // [...chunks, e.data]
-    this.setState({chunks:  chunks.concat([e.data])});
-    // console.log(this.state.chunks);
+    this.setState({chunks:  [...this.state.chunks, e.data]});
   }
 
   mediaRecOnStop(e){
-    const downloadLink = document.getElementById('download');
-   
-    downloadLink.href = URL.createObjectURL(new Blob(this.state.chunks));
-    downloadLink.download = 'acetest.wav';
+
+    const fileName = prompt('Enter a name for your sound clip?', 
+      'My unnamed clip') + '.wav';
+    // this can be moved to download function
+    const downloadObj = URL.createObjectURL(new Blob(this.state.chunks));
+    this.download(fileName, downloadObj)
+
+    this.setState({chunks: []});
+  }
+
+  download(filename, obj) {
+      var element = document.createElement('a');
+      element.setAttribute('href', obj);
+      element.setAttribute('download', filename);
+
+      element.style.display = 'none';
+      document.body.appendChild(element);
+
+      element.click();
+
+      document.body.removeChild(element);
   }
 
   handleRecordBtnClick(){
-    // this.state.audioStream.start();
-    // console.log("record button clicked");
+    
     this.state.audioStream.start();
     this.setState({recBtnDisable: true,
                    stopBtnDisable: false
@@ -85,7 +92,7 @@ class MainUI extends Component {
   }
 
   handleStopBtnClick(){
-    // console.log("stop button clicked");
+    
     this.state.audioStream.stop();
     this.setState({recBtnDisable: false,
                    stopBtnDisable: true
@@ -99,7 +106,6 @@ class MainUI extends Component {
 
     return (
       <div>
-        <a id="download">Download</a>
         <Button btnText="Record" 
                 onClick={this.handleRecordBtnClick} 
                 disabled={this.state.recBtnDisable} />
@@ -153,10 +159,8 @@ class App extends Component {
   constructor(props) {
     super(props)
 
-    
     this.state = {isMediaSupported: false, 
-                  microphoneAccess: null
-                 };
+                  microphoneAccess: null };
 
     this.requestMicrophoneAccess = this.requestMicrophoneAccess.bind(this);
     
@@ -186,21 +190,36 @@ class App extends Component {
 
     navigator.mediaDevices.getUserMedia({audio: true})
       .then(() => {this.setState({microphoneAccess: "granted"})})
-      .catch(() => {this.setState({microphoneAccess: "denied"})}
+      .catch(() => {this.setState({microphoneAccess: "denied"})});
     
   };
 
 
   render() {
     const { microphoneAccess } = this.state;
+
+    let componentToDisplay;
+
+    switch(microphoneAccess){
+      case "granted":
+        componentToDisplay = <MainUI microphoneAccess={microphoneAccess} />;
+        break;
+      case "prompt":
+        componentToDisplay = <MicrophoneRequest 
+                                microphoneAccess={microphoneAccess} 
+                                onClick={this.requestMicrophoneAccess} />;
+        break;
+      case "denied":
+        componentToDisplay = <MicrophoneError microphoneAccess={microphoneAccess} />;
+        break;
+      default:
+        
+    }
+
     return (
       <div className="App">
         <h1>Welcome!!</h1>
-        <MainUI microphoneAccess={microphoneAccess} />
-        <MicrophoneRequest 
-          microphoneAccess={microphoneAccess} 
-          onClick={this.requestMicrophoneAccess} />
-        <MicrophoneError microphoneAccess={microphoneAccess} />
+        {componentToDisplay}
       </div>
     )
   }
