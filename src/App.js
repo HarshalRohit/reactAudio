@@ -25,7 +25,8 @@ class MainUI extends Component {
     this.state = {audioStream: null, 
                   chunks: [],
                   recBtnDisable: false,
-                  stopBtnDisable: true
+                  stopBtnDisable: true,
+                  sendBtnDisable: true
                  };
 
     this.setupAudioRecord = this.setupAudioRecord.bind(this);                  
@@ -34,6 +35,7 @@ class MainUI extends Component {
 
     this.handleRecordBtnClick = this.handleRecordBtnClick.bind(this);
     this.handleStopBtnClick = this.handleStopBtnClick.bind(this);
+    this.handleSendBtnClick = this.handleSendBtnClick.bind(this);
 
     this.download = this.download.bind(this);
   }
@@ -55,20 +57,26 @@ class MainUI extends Component {
                   });
   }
 
+
   mediaRecOnDataAvail(e){
     this.setState({chunks:  [...this.state.chunks, e.data]});
   }
+
 
   mediaRecOnStop(e){
 
     const fileName = prompt('Enter a name for your sound clip?', 
       'My unnamed clip') + '.wav';
-    // this can be moved to download function
-    const downloadObj = URL.createObjectURL(new Blob(this.state.chunks));
-    this.download(fileName, downloadObj)
 
-    this.setState({chunks: []});
+    this.setState({fileName: fileName})
+
+    // this can be moved to download function
+    // const downloadObj = URL.createObjectURL(new Blob(this.state.chunks));
+    // this.download(fileName, downloadObj)
+
+    // this.setState({chunks: []});
   }
+
 
   download(filename, obj) {
       var element = document.createElement('a');
@@ -83,24 +91,67 @@ class MainUI extends Component {
       document.body.removeChild(element);
   }
 
+
   handleRecordBtnClick(){
-    
-    this.state.audioStream.start();
     this.setState({recBtnDisable: true,
-                   stopBtnDisable: false
+                   stopBtnDisable: false,
+                   sendBtnDisable: true, 
+                   chunks: []
                  });
+
+    this.state.audioStream.start();
   }
+
 
   handleStopBtnClick(){
-    
     this.state.audioStream.stop();
     this.setState({recBtnDisable: false,
-                   stopBtnDisable: true
+                   stopBtnDisable: true,
+                   sendBtnDisable: false
                  });
+  };
+
+
+  handleSendBtnClick(){
+    const fd = new FormData();
+    const blob = new Blob(this.state.chunks);
+    const fileName = this.state.fileName;
+    fd.append('avatar', blob, fileName);
+
+    const myHeaders = new Headers();
+
+    const requestOptions = {
+      method: 'POST',
+      headers: myHeaders,
+      body: fd,
+      redirect: 'follow'
+    };
+
+    this.setState({sendBtnDisable: true});
+
+    fetch("http://localhost:3020/upload", requestOptions)
+      .then(response => {
+        if(!response.ok)
+          alert("some error occured!!");
+        
+        return response.text();
+      })
+      .then(result => {
+        console.log(result);
+        alert(result);
+        this.setState({sendBtnDisable: false});
+      })
+      .catch(error => {
+        alert("Network/Server error!!");
+        console.log('error', error);
+        this.setState({sendBtnDisable: false});
+      });
+
+    
   }
 
+
   render(){
-    
     if(this.props.microphoneAccess !== "granted")
       return null;
 
@@ -112,10 +163,14 @@ class MainUI extends Component {
         <Button btnText="Stop" 
                 onClick={this.handleStopBtnClick}
                 disabled={this.state.stopBtnDisable} />
+        <Button btnText="Upload"
+                onClick={this.handleSendBtnClick}
+                disabled={this.state.sendBtnDisable} />
       </div>
     );
   };
 };
+
 
 class MicrophoneRequest extends Component {
   render(){

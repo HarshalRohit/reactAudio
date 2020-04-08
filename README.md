@@ -7,12 +7,13 @@ reactAudio is a simple react app to record audio.
 
 This project is part of my attempt to learn React-js.
 <br />
-The app will record audio and save the file locally.
+The app will record audio and allow user to send the recorded audio to server.
 
 ## Features
 Display error or main content based on the access to microphone. <br />
 Disable buttons based on the recording state. <br />
-Prompt user the file name.
+Prompt user to enter file name. <br />
+Alert user the status of server response.
 
 
 ## Usage
